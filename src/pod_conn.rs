@@ -17,7 +17,8 @@ impl PodConnSvc {
         let listener = TcpListener::bind(addr).await.unwrap();
         println!("pod_conn_svc: pod device listening on port {}", port);
         
-        while let Ok((mut stream, _)) = listener.accept().await {
+        while let Ok((mut stream, addr)) = listener.accept().await {
+            println!("new client from {}", addr);
             let mut buf = vec![0; 1024];
 
             loop {

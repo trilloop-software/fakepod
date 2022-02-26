@@ -17,20 +17,34 @@ impl PodConnSvc {
         let listener = TcpListener::bind(addr).await.unwrap();
         println!("pod_conn_svc: pod device listening on port {}", port);
         
+        //handles pod establishing connection to this device
         while let Ok((mut stream, addr)) = listener.accept().await {
             println!("new client from {}", addr);
             let mut buf = vec![0; 1024];
 
             loop {
-                let req = stream.read(&mut buf).await?;
-                
-                if req == 0 {
-                    return Ok(());
-                }
+ 
+                let req = match stream.read(&mut buf).await{
+                    Ok(size) => {
+        
+                        println!("received command");
 
-                let resp = self.handle_request(decode(buf.to_vec())).await.unwrap();
-                let resp = encode(resp);
-                stream.write_all(&resp).await?;
+                        //try to decode the command
+                        let decoded =  decode(buf[0..size].to_vec());
+
+                        //for now, resp Packet contains hard-coded data
+                        let resp = encode(self.handle_request(decoded).await.unwrap());
+        
+                        //try to send the test packet back to the backend
+                        stream.write_all(&resp).await?;
+
+                        
+                        println!("decoded command");
+                    },
+                    Err(e) => println!("failed to receive command: {}", (e).to_string())
+                };
+
+
             }
         }
 
@@ -38,16 +52,19 @@ impl PodConnSvc {
     }
 
     async fn handle_request(&mut self, pkt: PodPacket) -> Result<PodPacket> {
-        let resp: PodPacket = match pkt.cmd_type {
-            0..=127 => {
-                // send to controls service
-                pkt
-            },
-            128..=255 => {
-                // send to telemetry service
-                pkt
-            }
-        };
+
+        let resp = PodPacket::new(0, vec![("Test").to_string()]);
+
+        //let resp: PodPacket = match pkt.cmd_type {
+        //    0..=127 => {
+        //        // send to controls service
+        //        pkt
+        //    },
+        //    128..=255 => {
+        //        // send to telemetry service
+        //        pkt
+        //    }
+        //};
         Ok(resp)
     }
 }

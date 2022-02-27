@@ -1,7 +1,9 @@
 use anyhow::Result;
 use std::net::SocketAddr;
 use tokio::{net::TcpListener, sync::mpsc::{Receiver, Sender}, io::{AsyncReadExt, AsyncWriteExt}};
-use super::packet::*;
+
+//access the packet struct to construct and parse packets
+use super::pod_packet::*;
 
 pub struct PodConnSvc {
     pub rx_ctrl: Receiver<PodPacket>,
@@ -29,17 +31,21 @@ impl PodConnSvc {
         
                         println!("received command");
 
-                        //try to decode the command
+                        //decode the command packet
                         let decoded =  decode(buf[0..size].to_vec());
+                        println!("decoded command");
 
-                        //for now, resp Packet contains hard-coded data
+                        //create a return packet based on the contents of the request packet
+                        //encode it into a vector of bytes
                         let resp = encode(self.handle_request(decoded).await.unwrap());
         
-                        //try to send the test packet back to the backend
+                        println!("response packet built");
+
+                        //send the test packet back to the backend
                         stream.write_all(&resp).await?;
 
+                        println!("response sent");
                         
-                        println!("decoded command");
                     },
                     Err(e) => println!("failed to receive command: {}", (e).to_string())
                 };
@@ -53,18 +59,63 @@ impl PodConnSvc {
 
     async fn handle_request(&mut self, pkt: PodPacket) -> Result<PodPacket> {
 
-        let resp = PodPacket::new(0, vec![("Test").to_string()]);
+        //create response packet 
+        //using request packet as a template
+        let mut packet = pkt.clone();
 
-        //let resp: PodPacket = match pkt.cmd_type {
-        //    0..=127 => {
-        //        // send to controls service
-        //        pkt
-        //    },
-        //    128..=255 => {
-        //        // send to telemetry service
-        //        pkt
-        //    }
-        //};
+        //starting with the command type
+        let resp: PodPacket = match packet.cmd_type {
+
+            //255 is reserved for emergency stop packets
+            //check for this one first, in case of emergency
+            255 =>{
+                //call function to handle emergency actions. 'handle_emergency()'
+
+                //return ACK packet
+                packet
+            }
+            //0 is reserved for error packets
+            0 =>{
+
+                //return ACK packet
+                packet
+            },
+            //1 is reserved for discovery packets
+            1 =>{
+
+                println!("discovery command received");
+
+                //get device telemetry fields from telemtry_svc
+                //telemtry_svc will add the new data to the PodPacketPayload object in the return packet
+                self.tx_tele.send(packet).await;
+                packet = self.rx_tele.recv().await
+                    .unwrap_or(PodPacket::new(0,Vec::new())); //if podpacket was corrupted, create an error packet
+
+                println!("obtained telemetry fields");
+
+                //get commands from controls_svc
+                //control_svc will add the new data to the PodPacketPayload object in the return packet
+                self.tx_ctrl.send(packet).await;
+                packet = self.rx_ctrl.recv().await
+                    .unwrap_or(PodPacket::new(0,Vec::new())); //if podpacket was corrupted, create an error packet
+
+                println!("obtained command list");
+
+                println!("discovery command fulfilled");
+                //return packet containing the data in its payload: list of commands, list of device fields
+                packet
+            },
+            //cmds for controlling device
+            2..=127 => {
+                // send to controls service
+                packet
+            },
+            //cmds for telemetry of device
+            128..=254 => {
+                // send to telemetry service
+                packet
+            }
+        };
         Ok(resp)
     }
 }

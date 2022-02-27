@@ -2,18 +2,20 @@ use anyhow::Result;
 use tokio::{spawn, sync::mpsc};
 
 mod controls;
-mod packet;
+mod pod_packet;
+mod pod_packet_payload;
 mod pod_conn;
 mod telemetry;
 
-use packet::*;
+use pod_packet::*;
+use pod_packet_payload::*;
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
     let (tx_pod_to_tele, rx_pod_to_tele) = mpsc::channel::<PodPacket>(32);
-    let (tx_tele_to_pod, rx_tele_to_pod) = mpsc::channel::<PodPacket>(32);
     let (tx_pod_to_ctrl, rx_pod_to_ctrl) = mpsc::channel::<PodPacket>(32);
     let (tx_ctrl_to_pod, rx_ctrl_to_pod) = mpsc::channel::<PodPacket>(32);
+    let (tx_tele_to_pod, rx_tele_to_pod) = mpsc::channel::<PodPacket>(32);
 
     let ctrl_svc = controls::ControlsSvc {
         rx: rx_pod_to_ctrl,

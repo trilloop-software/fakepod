@@ -35,16 +35,32 @@ impl PodConnSvc {
                         let decoded =  decode(buf[0..size].to_vec());
                         println!("decoded command");
 
-                        //create a return packet based on the contents of the request packet
-                        //encode it into a vector of bytes
-                        let resp = encode(self.handle_request(decoded).await.unwrap());
-        
-                        println!("response packet built");
+                        //check for disconnect command
+                        if(decoded.cmd_type == 2){
+                            //if the packet was a shutdown packet
+                            //shutdown this client's thread
+                            println!("disconnect command received from client");
+                            break;
+                        }
 
-                        //send the test packet back to the backend
-                        stream.write_all(&resp).await?;
+                        //handle the contents of the request packet
+                        let pkt = self.handle_request(decoded).await.unwrap();
 
-                        println!("response sent");
+                        //detemrine if response packet is necessary
+
+                        if(pkt.cmd_type != 2){
+                            //otherwise, send back a reqsponse packet
+                            //encode it into a vector of bytes
+                            let resp = encode(pkt);
+            
+                            println!("response packet built");
+
+                            //send the test packet back to the backend
+                            stream.write_all(&resp).await?;
+
+                            println!("response sent");
+
+                        }
                         
                     },
                     Err(e) => println!("failed to receive command: {}", (e).to_string())
@@ -105,8 +121,13 @@ impl PodConnSvc {
                 //return packet containing the data in its payload: list of commands, list of device fields
                 packet
             },
+            2 =>{
+                //cmd #2 is reserved for disconnect packets
+                //listener stream should be dropped before the code even reaches this point
+                packet
+            },
             //cmds for controlling device
-            2..=127 => {
+            3..=127 => {
                 // send to controls service
                 packet
             },

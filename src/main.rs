@@ -1,6 +1,9 @@
 use anyhow::Result;
 use tokio::{spawn, sync::mpsc};
 
+#[macro_use]
+mod macros;
+
 mod controls;
 mod pod_packet;
 mod pod_packet_payload;

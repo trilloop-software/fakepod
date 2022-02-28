@@ -79,8 +79,8 @@ impl TelemetrySvc {
                         }
                         //command for retrieving telemetry data
                         128 =>{
-                            //return a JSON object with all the data values
-                            //the attributes of this JSON obj should correspond to the device fields
+                            //package the data into a Vec<String>
+                            //store the Vec inside the pod packet payload
                         }
                         _ => ()
                     }

@@ -25,10 +25,7 @@ impl PodPacketPayload {
 }
 
 pub fn decode_payload(pkt: Vec<u8>) -> PodPacketPayload {
-    //let p = pkt.clone();
-    //for b in p{
-    //    println!("{}",b);
-    //}
+
     deserialize(&pkt[..]).unwrap()
 }
 

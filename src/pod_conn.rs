@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use tokio::{net::TcpListener, sync::mpsc::{Receiver, Sender}, io::{AsyncReadExt, AsyncWriteExt}};
 
 //access the packet struct to construct and parse packets
@@ -13,11 +13,13 @@ pub struct PodConnSvc {
 }
 
 impl PodConnSvc {
-    pub async fn run(mut self, port: u16) -> Result<()> {
+    pub async fn run(mut self, mut port: u16) -> Result<()> {
         println!("pod_conn_svc: service running");
         let addr: SocketAddr = format!["0.0.0.0:{}", port.clone()].parse().unwrap();
         let listener = TcpListener::bind(addr).await.unwrap();
-        println!("pod_conn_svc: pod device listening on port {}", port);
+
+        //print the address that this thraed is listening on
+        println!("pod_conn_svc: pod device listening on {}", listener.local_addr().unwrap().port());
         
         //handles pod establishing connection to this device
         while let Ok((mut stream, addr)) = listener.accept().await {

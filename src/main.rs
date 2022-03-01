@@ -39,7 +39,8 @@ async fn main() -> Result<(), ()> {
     };
 
     spawn(ctrl_svc.run());
-    spawn(pod_conn_svc.run(14000));
+    //bind to port 0, so that it automatically binds to an available port
+    spawn(pod_conn_svc.run(0));
     spawn(tele_svc.run());
 
     loop {

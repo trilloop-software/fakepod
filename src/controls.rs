@@ -1,5 +1,7 @@
 use anyhow::Result;
 use tokio::sync::mpsc::{Receiver, Sender};
+use crate::dummy_reader;
+
 use super::pod_packet::PodPacket;
 use super::pod_packet_payload::*;
 
@@ -9,17 +11,18 @@ pub struct ControlsSvc {
 }
 
 impl ControlsSvc {
-    pub async fn run(mut self) -> Result<()> {
+    pub async fn run(mut self, dummy : dummy_reader::Dummy) -> Result<()> {
         println!("ctrl_svc: service running");
 
         //create placeholder data for now
         //Assume both arrays are the same size for now
-        let placeholder_cmd_names =vec![
-            s!["Placeholder Cmd A"],
-            s!["Placeholder Cmd B"],
-            s!["Placeholder Cmd C"],
-        ];
-        let placeholder_cmd_codes =vec![2,3,4];
+        let mut cmd_names : Vec<String> = vec!["Get data".to_string()];
+        let mut cmd_codes : Vec<u8> = vec![2];
+
+        for cmd in dummy.cmds{ //add custom commands
+            cmd_names.push(cmd);
+            cmd_codes.push(cmd_codes[cmd_codes.len() - 1] + 1);
+        }
 
         loop {
             tokio::select! {
@@ -40,8 +43,8 @@ impl ControlsSvc {
                             //build and encode a payload containing:
                             //  -a Vec<String> of command names
                             //  -a Vec<u8> of commands
-                            let commands = placeholder_cmd_codes.clone();
-                            let names = placeholder_cmd_names.clone();
+                            let commands = cmd_codes.clone();
+                            let names = cmd_names.clone();
                             let mut resp_payload = decode_payload(packet.payload);
                             resp_payload.command_names = names;
                             resp_payload.command_codes = commands;
@@ -54,26 +57,16 @@ impl ControlsSvc {
                             //send the packet back to pod_conn
                             self.tx.send(packet).await;
                         }
-                        // device specific command
-                        2 =>{
-                            println!("Received device specific command");
-                            println!("Executing cmd. cmd_code = 2");
-                            println!("NOTE: This is a placeholder command");
+                        3 =>
+                        {
+                            //get all data
+                            let mut resp_payload = decode_payload(packet.payload);
+                            resp_payload.command_names = cmd_names.clone();
+                            resp_payload.telemetry_data = dummy.values.clone();
                         }
-                        // device specific command
-                        3 =>{
-                            println!("Received device specific command");
-                            println!("Executing cmd. cmd_code = 3");
-                            println!("NOTE: This is a placeholder command");
-                        }
-                        // device specific command
-                        4 =>{
-                            println!("Received device specific command");
-                            println!("Executing cmd. cmd_code = 4");
-                            println!("NOTE: This is a placeholder command");
-                        }
+                        // Rust won't let me match to a range here
                         _ => {
-                            println!("No matching command was found");
+                            //fake commands go here
                         }
                     }
                 }

@@ -1,6 +1,8 @@
 use anyhow::{Result};
 use rand::Rng;
 use tokio::sync::mpsc::{Receiver, Sender};
+use crate::dummy_reader;
+
 use super::pod_packet::PodPacket;
 use super::pod_packet_payload::*;
 
@@ -44,12 +46,9 @@ pub struct TelemetrySvc {
 }
 
 impl TelemetrySvc {
-    pub async fn run(mut self) -> Result<()> {
+    pub async fn run(mut self, dummy : dummy_reader::Dummy) -> Result<()> {
         println!("tele_svc: service running");
-        let placeholder_field_names =vec![
-            "Field 1".to_string(),
-            "Field 2".to_string(),
-            "Field 3".to_string()];
+        let field_names = dummy.fields;
 
         loop {
             tokio::select! {
@@ -64,7 +63,7 @@ impl TelemetrySvc {
                         1 =>{
                             // extract the payload from the packet
                             // store a Vec<String> of field names inside it
-                            let field_names = placeholder_field_names.clone();
+                            let field_names = field_names.clone();
                             let mut resp_payload = decode_payload(packet.payload);
                             resp_payload.field_names = field_names;
 

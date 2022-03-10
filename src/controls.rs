@@ -30,6 +30,25 @@ impl ControlsSvc {
 
                     match packet.cmd_type {
 
+                        //255 is reserved for emergency stop packets
+                        //check for this one first, in case of emergency
+                        //will activate the device's braking sequence
+                        255 =>{
+                            //call function to handle braking sequence
+                            ControlsSvc::brake_seq().await;
+
+                            //return ACK packet
+                            self.tx.send(packet).await;
+                        }
+                        //254 is reserved for launch packets
+                        //will activate the device's launching sequence
+                        254 =>{
+                            //call function to handle launching sequence
+                            ControlsSvc::launch_seq().await;
+
+                            //return ACK packet
+                            self.tx.send(packet).await;
+                        }
                         //0 is reserved for error packets
                         0 =>{
                             
@@ -82,5 +101,15 @@ impl ControlsSvc {
 
         // send a success response for whatever cmd received
         Ok(())
+    }
+
+    async fn launch_seq(){
+        println!("Activating Launch Sequence");
+        println!("Launch Sequence Complete");
+    }
+    
+    async fn brake_seq(){
+        println!("Activating Brake Sequence");
+        println!("Brake Sequence Complete");
     }
 }

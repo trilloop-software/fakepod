@@ -84,10 +84,21 @@ impl PodConnSvc {
         //starting with the command type
         let resp: PodPacket = match packet.cmd_type {
 
-            //255 is reserved for emergency stop packets
+            //255 is reserved for emergency/stop packets
             //check for this one first, in case of emergency
+            //will activate the device's braking sequence
             255 =>{
-                //call function to handle emergency actions. 'handle_emergency()'
+                self.tx_ctrl.send(packet).await;
+                packet = self.rx_ctrl.recv().await.unwrap();
+
+                //return ACK packet
+                packet
+            }
+            //254 is reserved for launch packets
+            //will activate the device's launch sequence
+            254 =>{
+                self.tx_ctrl.send(packet).await;
+                packet = self.rx_ctrl.recv().await.unwrap();
 
                 //return ACK packet
                 packet
@@ -131,6 +142,10 @@ impl PodConnSvc {
             //cmds for controlling device
             3..=127 => {
                 // send to controls service
+                // cmd #3 is reserved for launch commands. Will tell controls to activate launch sequence
+                self.tx_ctrl.send(packet).await;
+                packet = self.rx_ctrl.recv().await.unwrap();
+
                 packet
             },
             //cmds for telemetry of device

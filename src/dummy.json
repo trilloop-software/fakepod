@@ -1,0 +1,6 @@
+{
+	"name": "GLaDOS",
+	"fields": ["Test subjects", "Borealis Status"],
+	"values": [1, "Lost"],
+	"cmds": ["Test", "Release neurotoxins"]
+}

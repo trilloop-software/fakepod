@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use bincode::{serialize, deserialize};
+use serde_json::Value;
 
 #[derive(Serialize, Deserialize)]
 
@@ -9,7 +10,7 @@ pub struct PodPacketPayload {
     pub target_id: String,
     pub target_cmd_code: u8,
     pub field_names: Vec<String>,
-    pub telemetry_data: Vec<u8>, //assume all data is of type u8 for now (maybe make this Vec<Vec<u8>> later?)
+    pub telemetry_data: Vec<Value>,
     pub command_names: Vec<String>,
     pub command_codes: Vec<u8>,
 }
@@ -20,7 +21,7 @@ impl PodPacketPayload {
             target_id: s![""],
             target_cmd_code: 0,
             field_names: Vec::new(),
-            telemetry_data: Vec::new(), //assume all data is of type u8 for now (maybe make this Vec<byte array> later?)
+            telemetry_data: Vec::new(),
             command_names: Vec::new(),
             command_codes: Vec::new(),
         }
